@@ -1,0 +1,31 @@
+
+> smart-ev@1.0.0 test
+> node --test --test-concurrency=1 tests/api.test.js
+
+MongoDB connected (test)
+✔ real replica-set database and existing source data are retained (2836.287417ms)
+✔ seed and migration are idempotent and preserve edited data (15.342125ms)
+✔ bcrypt hashes passwords; cookies are HTTP-only and SameSite; production cookies are Secure (677.522292ms)
+✔ authentication, CSRF and origin checks protect writes (686.432541ms)
+✔ private data is scoped on overview, reports, lists and detail routes (25.271833ms)
+✔ users cannot change another owner, memberships, stations or roles (20.411208ms)
+✔ station search, filters, details and embedded connector read work (9.354959ms)
+✔ booking validates owner, connectors, dates and nonnegative energy (17.518542ms)
+✔ create persists to MongoDB and calculates the bill server-side (32.306416ms)
+✔ overlaps fail; adjacent reservations on the same connector succeed (37.781791ms)
+✔ active station/vehicle edits cannot invalidate reservations (8.96675ms)
+✔ moving a reservation releases its old connector (22.458083ms)
+✔ simulated start/end persist session history and calculate final cost (44.973583ms)
+✔ payment simulation is owned, calculated, persistent and idempotent (41.912708ms)
+✔ concurrent users cannot reserve the same overlapping interval (30.22575ms)
+✔ CRUD, indexes, delete impact and cascading transactions work (104.137083ms)
+✔ aggregation reports are scoped and membership upgrade is idempotent (21.03375ms)
+✔ logout invalidates the server session and profile endpoint survives fresh requests (18.284584ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5388.177041

@@ -1,0 +1,106 @@
+{
+  "capturedAt": "2026-10-14T06:41:29.440Z",
+  "steps": [
+    {
+      "operation": "Create",
+      "method": "POST",
+      "path": "/api/vehicles",
+      "request": {
+        "user_id": "6acf2419e8c56da87cee2498",
+        "model_name": "Submission Demo EV",
+        "plug_type": "CCS2",
+        "batteryCapacity": 40
+      },
+      "status": 201,
+      "mongoDocument": {
+        "_id": "6acf2419e8c56da87cee24a0",
+        "user_id": "6acf2419e8c56da87cee2498",
+        "model_name": "Submission Demo EV",
+        "plug_type": "CCS2",
+        "batteryCapacity": 40,
+        "vehicle_id": 19
+      }
+    },
+    {
+      "operation": "Read",
+      "method": "GET",
+      "path": "/api/vehicles/6acf2419e8c56da87cee24a0",
+      "status": 200,
+      "response": {
+        "_id": "6acf2419e8c56da87cee24a0",
+        "model_name": "Submission Demo EV",
+        "plug_type": "CCS2"
+      },
+      "mongoDocument": {
+        "_id": "6acf2419e8c56da87cee24a0",
+        "user_id": "6acf2419e8c56da87cee2498",
+        "model_name": "Submission Demo EV",
+        "plug_type": "CCS2",
+        "batteryCapacity": 40,
+        "vehicle_id": 19
+      }
+    },
+    {
+      "operation": "Update",
+      "method": "PUT",
+      "path": "/api/vehicles/6acf2419e8c56da87cee24a0",
+      "request": {
+        "model_name": "Submission Demo EV Updated",
+        "batteryCapacity": 55
+      },
+      "status": 200,
+      "mongoDocument": {
+        "_id": "6acf2419e8c56da87cee24a0",
+        "user_id": "6acf2419e8c56da87cee2498",
+        "model_name": "Submission Demo EV Updated",
+        "plug_type": "CCS2",
+        "batteryCapacity": 55,
+        "vehicle_id": 19
+      }
+    },
+    {
+      "operation": "Delete",
+      "method": "DELETE",
+      "path": "/api/vehicles/6acf2419e8c56da87cee24a0",
+      "status": 204,
+      "followupGetStatus": 404,
+      "mongoDocument": null
+    }
+  ],
+  "connection": {
+    "database": "smart_ev_charging",
+    "readyState": 1,
+    "ping": {
+      "ok": 1,
+      "$clusterTime": {
+        "clusterTime": {
+          "$timestamp": "7696409952222445569"
+        },
+        "signature": {
+          "hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "keyId": 0
+        }
+      },
+      "operationTime": {
+        "$timestamp": "7696409952222445569"
+      }
+    },
+    "replicaSet": "smart-ev",
+    "isWritablePrimary": true,
+    "collections": [
+      "authsessions",
+      "bookings",
+      "counters",
+      "stations",
+      "users",
+      "vehicles"
+    ]
+  },
+  "health": {
+    "status": "connected",
+    "database": "MongoDB",
+    "name": "smart_ev_charging"
+  },
+  "assertions": "PASS: API results matched direct MongoDB reads for all four CRUD operations.",
+  "cleanup": "Temporary demonstration user and related records deleted."
+}

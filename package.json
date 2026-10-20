@@ -1,7 +1,40 @@
 {
-  "name": "smart-ev", "version": "1.0.0", "private": true, "type": "module",
-  "scripts": {"dev": "node server/dev.js", "build": "vite build", "start": "node server/index.js", "test": "node --test --test-concurrency=1 tests/api.test.js", "seed": "node server/seed-cli.js"},
-  "dependencies": {"@fontsource-variable/dm-sans": "^5.2.8", "@vitejs/plugin-react": "^4.7.0", "dotenv": "^16.6.1", "express": "^5.1.0", "lucide-react": "^0.468.0", "mongodb-memory-server": "^10.2.0", "mongoose": "^8.19.1", "react": "^19.1.1", "react-dom": "^19.1.1", "recharts": "^3.2.1", "vite": "^6.3.6"},
-  "devDependencies": {"@playwright/test": "^1.55.1", "supertest": "^7.1.4"},
-  "engines": {"node": ">=20.19"}
+  "name": "smart-ev",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server/dev.js",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "test": "node --test --test-concurrency=1 tests/api.test.js",
+    "seed": "node server/seed-cli.js",
+    "admin": "node scripts/create-admin.js",
+    "dev:server": "node server/server.js",
+    "dev:client": "vite --host 127.0.0.1",
+    "test:ui": "node tests/browser.test.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/dm-sans": "^5.2.8",
+    "@vitejs/plugin-react": "^4.7.0",
+    "bcrypt": "^6.0.0",
+    "cookie": "^2.0.1",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.7.1",
+    "lucide-react": "^0.468.0",
+    "mongodb-memory-server": "^10.2.0",
+    "mongoose": "^8.19.1",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "recharts": "^3.2.1",
+    "vite": "^6.3.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.1",
+    "supertest": "^7.1.4"
+  },
+  "engines": {
+    "node": ">=22"
+  }
 }

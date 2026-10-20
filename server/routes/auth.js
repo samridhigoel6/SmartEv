@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { rateLimit } from 'express-rate-limit';
+import { authenticate } from '../middleware/auth.js';
+import { registerUser, loginUser, logoutUser, currentUser } from '../controllers/auth.js';
+export const authRouter = Router();
+const throttle = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-7', legacyHeaders: false, message: { error: 'Too many sign-in attempts. Please try again in 15 minutes.' } });
+authRouter.post('/register', throttle, registerUser);
+authRouter.post('/login', throttle, loginUser);
+authRouter.get('/me', authenticate, currentUser);
+authRouter.post('/logout', authenticate, logoutUser);

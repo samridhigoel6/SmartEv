@@ -1,0 +1,15 @@
+import * as records from '../services/records.js';
+import * as reportService from '../services/reports.js';
+export const listRecords = kind => async (req, res) => res.json(await records.list(kind, req.user, req.query));
+export const getRecord = kind => async (req, res) => res.json(await records.get(kind, req.params.id, req.user));
+export const saveRecord = kind => async (req, res) => res.status(req.params.id ? 200 : 201).json(await records.save(kind, req.params.id, req.body, req.user));
+export const deleteRecord = kind => async (req, res) => { await records.remove(kind, req.params.id, req.user); res.status(204).end(); };
+export const impact = kind => async (req, res) => res.json(await records.deletionImpact(kind, req.params.id, req.user));
+export const overview = async (req, res) => res.json(await reportService.overview(req.user));
+export const reports = async (req, res) => res.json(await reportService.reports(req.user));
+export const upgrade = async (req, res) => res.json(await reportService.upgradeMembers());
+export const checkAvailability = async (req, res) => res.json(await records.availability(req.params.id, req.query.startTime, req.query.endTime, req.query.exclude));
+export const connectors = async (req, res) => { const station = await records.get('stations', req.params.id, req.user); res.json([{ _id: station._id, stationId: station._id, connectorType: station.supported_plug, powerRating: station.connector.powerRating, pricePerKWh: station.connector.pricePerKWh, operationalStatus: station.current_status }]); };
+export const transition = status => async (req, res) => res.json(await records.save('bookings', req.params.id, { ...(status === 'Completed' && req.body?.energy_used_kwh !== undefined ? { energy_used_kwh: req.body.energy_used_kwh } : {}), status }, req.user));
+export const payment = async (req, res) => res.json(await records.simulatePayment(req.params.id, req.body, req.user));
+export const history = property => async (req, res) => res.json((await records.list('bookings', req.user)).filter(b => b[property]).map(b => ({ bookingId: b._id, booking_id: b.booking_id, userId: b.user_id._id, ...b[property] })));

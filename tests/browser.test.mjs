@@ -1,0 +1,104 @@
+// Requires a running local app. Creates uniquely named QA records and removes only those records.
+import { chromium } from '@playwright/test';
+import { readFile, mkdir } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
+import assert from 'node:assert/strict';
+const base = process.env.E2E_URL || 'http://127.0.0.1:5173';
+let adminEmail = process.env.E2E_ADMIN_EMAIL, adminPassword = process.env.E2E_ADMIN_PASSWORD;
+if (!adminEmail || !adminPassword) {
+  const credentials = await readFile('.data/admin-login.txt', 'utf8');
+  adminEmail = credentials.match(/^Email: (.+)$/m)[1]; adminPassword = credentials.match(/^Password: (.+)$/m)[1];
+}
+const login = await fetch(`${base}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: adminEmail, password: adminPassword }) });
+assert.equal(login.status, 200);
+const adminAuth = await login.json();
+const cookie = login.headers.getSetCookie()[0].split(';')[0];
+const adminApi = async (path, method = 'GET', body) => {
+  const response = await fetch(`${base}/api${path}`, { method, headers: { Cookie: cookie, 'X-CSRF-Token': adminAuth.csrfToken, 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) });
+  if (response.status === 204) return;
+  const value = await response.json(); if (!response.ok) throw new Error(value.error); return value;
+};
+const token = randomBytes(5).toString('hex'), name = `QA Driver ${token}`, email = `qa-${token}@example.test`, password = randomBytes(16).toString('base64url');
+const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_BROWSER === 'chromium' ? {} : { channel: 'chrome' }) });
+const adminContext = await browser.newContext({ viewport: { width: 1512, height: 1100 }, reducedMotion: 'reduce' });
+const userContext = await browser.newContext({ viewport: { width: 1512, height: 1100 }, reducedMotion: 'reduce' });
+const adminPage = await adminContext.newPage(), page = await userContext.newPage();
+const errors = []; for (const p of [adminPage, page]) p.on('pageerror', e => errors.push(e.message));
+await mkdir('tmp/integration', { recursive: true });
+let userId;
+try {
+  await adminPage.goto(base, { waitUntil: 'networkidle' });
+  await adminPage.getByLabel('Email address').fill(adminEmail); await adminPage.getByLabel('Password', { exact: true }).fill(adminPassword);
+  await adminPage.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await adminPage.getByRole('heading', { name: 'Your charging network, at a glance.' }).waitFor();
+  await page.goto(base, { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'New driver? Create an account' }).click();
+  await page.getByLabel('Full name').fill(name); await page.getByLabel('Email address').fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+  await page.getByRole('heading', { name: 'Your charging network, at a glance.' }).waitFor();
+  userId = (await page.evaluate(async () => (await (await fetch('/api/auth/me')).json()).user._id));
+  const visible = await page.evaluate(async () => (await (await fetch('/api/overview')).json()));
+  assert.equal(visible.users.length, 1); assert.equal(visible.vehicles.length, 0);
+  await page.getByRole('link', { name: 'Vehicles', exact: true }).click();
+  await page.getByRole('button', { name: 'Add vehicle', exact: true }).first().click();
+  await page.getByLabel('Vehicle model').fill(`QA EV ${token}`);
+  assert.equal(await page.getByLabel('Vehicle owner').isDisabled(), true);
+  await page.getByRole('button', { name: 'Create vehicle', exact: true }).click(); await page.getByRole('dialog').waitFor({ state: 'hidden' });
+  // Admin creates a connector through the original station form.
+  await adminPage.reload({ waitUntil: 'networkidle' });
+  await adminPage.getByRole('link', { name: 'Charging stations', exact: true }).click();
+  await adminPage.getByRole('button', { name: 'Add station', exact: true }).click();
+  await adminPage.getByLabel('Station name').fill(`QA Station ${token}`); await adminPage.getByLabel('Address').fill('QA Test Road');
+  await adminPage.getByLabel('Station owner').selectOption({ label: name });
+  await adminPage.getByRole('button', { name: 'Create station', exact: true }).click(); await adminPage.getByRole('dialog').waitFor({ state: 'hidden' });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.getByRole('link', { name: 'Charging stations', exact: true }).click();
+  assert.equal(await page.getByRole('button', { name: 'Add station', exact: true }).count(), 0);
+  await page.getByLabel('Search stations').fill(`QA Station ${token}`);
+  await page.getByRole('button', { name: 'Book a session' }).click();
+  await page.getByLabel('Vehicle', { exact: true }).selectOption({ label: `QA EV ${token} · CCS2` });
+  await page.getByLabel('Energy used (kWh)', { exact: true }).fill('20');
+  assert.equal(await page.getByLabel('Total bill (INR)').isDisabled(), true);
+  await page.getByRole('button', { name: 'Create booking', exact: true }).click(); await page.getByRole('dialog').waitFor({ state: 'hidden' });
+  await page.getByRole('link', { name: /^Bookings/ }).click();
+  await page.locator('tbody tr').first().waitFor();
+  assert.equal(await page.locator('tbody tr').count(), 1);
+  await page.locator('tbody').getByRole('button', { name: /^Edit BK-/ }).click();
+  await page.getByLabel('Booking status').selectOption('Charging');
+  await page.getByRole('button', { name: 'Save changes' }).click(); await page.getByRole('dialog').waitFor({ state: 'hidden' });
+  await page.locator('tbody').getByText('Charging', { exact: true }).waitFor();
+  await page.locator('tbody').getByRole('button', { name: /^Edit BK-/ }).click();
+  await page.getByLabel('Booking status').selectOption('Completed');
+  await page.getByRole('button', { name: 'Save changes' }).click(); await page.getByRole('dialog').waitFor({ state: 'hidden' });
+  await page.reload({ waitUntil: 'networkidle' }); await page.locator('tbody').getByText('Completed', { exact: true }).waitFor();
+  await page.locator('tbody').getByRole('button', { name: /^Edit BK-/ }).click();
+  await page.getByRole('button', { name: 'Simulate paid' }).click(); await page.getByRole('dialog').waitFor({ state: 'hidden' });
+  await page.locator('tbody').getByRole('button', { name: /^Edit BK-/ }).click();
+  await page.getByText('Simulated payment · Paid').waitFor();
+  assert.equal(await page.getByRole('button', { name: 'Save changes' }).isDisabled(), true);
+  await page.screenshot({ path: 'tmp/integration/payment-dialog.png', fullPage: true, animations: 'disabled' });
+  await page.getByRole('button', { name: 'Close dialog' }).click();
+  await page.getByRole('link', { name: 'Insights & billing', exact: true }).click();
+  const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export CSV' }).click(); assert.equal((await pending).suggestedFilename(), 'smart-ev-billing.csv');
+  assert.equal(await page.getByRole('button', { name: 'Upgrade eligible members' }).isDisabled(), true);
+  const data = await page.evaluate(async () => (await (await fetch('/api/overview')).json()));
+  assert.equal(data.bookings[0].total_bill, 9); assert.equal(data.bookings[0].payment.paymentStatus, 'Paid');
+  assert.equal((await page.evaluate(async id => (await fetch(`/api/users/${id}`)).status, adminAuth.user._id)), 404);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Open navigation' }).click(); await page.getByRole('link', { name: 'Overview', exact: true }).click();
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await page.screenshot({ path: 'tmp/integration/mobile.png', fullPage: true, animations: 'disabled' });
+  await page.getByRole('button', { name: 'Open navigation' }).click(); await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await page.getByRole('heading', { name: 'Welcome to Smart EV.' }).waitFor();
+  // Cleanup only the uniquely registered QA account and its cascade before final screenshot.
+  await adminApi(`/users/${userId}`, 'DELETE'); userId = null;
+  await adminPage.goto(`${base}/#overview`, { waitUntil: 'networkidle' }); await adminPage.reload({ waitUntil: 'networkidle' });
+  await adminPage.getByRole('heading', { name: 'Your charging network, at a glance.' }).waitFor();
+  await adminPage.screenshot({ path: 'tmp/integration/desktop.png', fullPage: true, animations: 'disabled' });
+  assert.deepEqual(errors, []);
+  console.log('Browser checks passed: admin login, driver registration, own vehicle, station CRUD, booking, charging, payment, reload, CSV, authorization, mobile layout and logout. QA records removed.');
+} finally {
+  if (userId) await adminApi(`/users/${userId}`, 'DELETE').catch(() => {});
+  await adminApi('/auth/logout', 'POST').catch(() => {});
+  await browser.close();
+}
