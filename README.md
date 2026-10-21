@@ -94,16 +94,6 @@ Integration tests use an isolated native MongoDB replica set and a separate data
 - [Project structure and changed files](docs/project-structure.md)
 - [Original audit and implementation plan](docs/implementation-plan.md)
 
-## Sample data
-
-`server/seed.js` is the idempotent seed script based on the original SQL assignment: 10 sample profiles, 10 vehicles, 10 stations and 9 final historical bookings on a fresh database. Existing databases are preserved instead of reseeded. The generated administrator is additional.
-
-```sh
-npm run seed
-```
-
-Stop the built-in local app before running this standalone command, since two MongoDB processes cannot open the same database directory. There are no SQL migrations: MongoDB schema/data migration is in `server/services/migrate.js`.
-
 ## What is deliberately simulated or not included
 
 Charging start/end and energy readings are demonstrations with `simulated: true`; there is no charger hardware connection. Payment receipts also use `simulated: true`, and no payment gateway, bank/card data or external service is used. The existing app has no map, so GeoJSON/GPS is not introduced. Password reset/email verification and multi-connector station management are not implemented. No public deployment is performed by this integration.
